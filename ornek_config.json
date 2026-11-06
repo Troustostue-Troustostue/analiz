@@ -1,0 +1,35 @@
+{
+  "_aciklama": "YSA tarama konfigürasyonu. '_' ile başlayan alanlar açıklamadır, program okumaz. Ayrıntı: YSA_KULLANIM.md",
+
+  "veri": {
+    "dosya": "ornek_veri/cumg04_tel_cekme_SENTETIK.xlsx",
+    "sayfa": 0,
+    "girdiler": ["Mg_orani_agirlik%", "Hadde_sayisi", "Redüksiyon_%", "Cekme_hizi_m/s", "Kalip_malzemesi"],
+    "ciktilar": ["Cekme_dayanimi_MPa", "Sertlik_HV", "Iletkenlik_%IACS", "Enerji_kWh/ton"],
+    "kategorik": ["Kalip_malzemesi"]
+  },
+
+  "bolme": {"yontem": "rastgele", "egitim": 0.70, "dogrulama": 0.15, "test": 0.15, "tohum": 42},
+  "normalizasyon": {"yontem": "mapminmax", "aralik": [-1, 1], "kaynak": "egitim"},
+
+  "_katmanlar": "Her eleman bir gizli katmanın nöron aralığı: [min,max] veya [min,max,adim] veya {\"liste\":[...]}",
+  "katmanlar": [[1, 15], [2, 6]],
+  "_katman_sayilari": "Hangi derinlikler denensin: [1,2] -> hem tek katman (1..15) hem iki katman (1..15 x 2..6)",
+  "katman_sayilari": [1, 2],
+
+  "egitim_algoritmalari": ["trainlm", "trainbr"],
+  "gizli_aktivasyonlar": ["tansig"],
+  "cikis_aktivasyonu": "purelin",
+  "tekrar": 3,
+  "tohum": 2024,
+
+  "egitim_parametreleri": {"epochs": 500, "max_fail": 6, "goal": 0.0, "min_grad": 1e-7},
+  "algoritma_parametreleri": {"trainlm": {"mu": 0.001}, "trainbr": {"epochs": 300}},
+
+  "secim_kriteri": "val_mse",
+  "paralel_is": -1,
+  "en_iyi_k": 10,
+  "cikti_klasoru": "ysa_sonuclar",
+  "grafikler": true,
+  "agirlik_hessiani": true
+}

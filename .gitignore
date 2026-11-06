@@ -1,0 +1,4 @@
+ysa_sonuclar/
+__pycache__/
+*.pyc
+.pytest_cache/
