@@ -246,6 +246,11 @@ class AppPrefs(context: Context) {
     fun flag(key: String): Boolean = sp.getBoolean("flag_$key", false)
     fun setFlag(key: String, v: Boolean = true) = sp.edit { putBoolean("flag_$key", v) }
 
+    /** Bu cihazdaki tüm ayarları siler (veritabanı ayrıca temizlenir). */
+    fun wipe() {
+        sp.edit(commit = true) { clear() }
+    }
+
     fun resetSyncState() {
         sp.edit(commit = true) {
             remove(K_LAST_MSG_TIME); remove(K_LAST_PUBLISHED); remove(K_PAIRED); remove(K_LAST_REQ); remove(K_QUOTA)
