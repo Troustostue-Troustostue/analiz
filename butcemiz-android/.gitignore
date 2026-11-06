@@ -1,0 +1,15 @@
+.gradle/
+build/
+app/build/
+local.properties
+keystore.properties
+.idea/
+*.iml
+.kotlin/
+captures/
+.cxx/
+
+# İmza anahtarı ASLA depoya konmaz (kullanıcıya ayrıca verilir)
+keystore/*.p12
+keystore/*.jks
+*.keystore

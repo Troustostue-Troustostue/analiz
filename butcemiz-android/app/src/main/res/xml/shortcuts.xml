@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_expense"
+        android:shortcutId="add_expense"
+        android:shortcutLongLabel="@string/sc_expense_long"
+        android:shortcutShortLabel="@string/sc_expense_short">
+        <intent
+            android:action="com.butcemiz.app.ADD_EXPENSE"
+            android:targetClass="com.butcemiz.app.MainActivity"
+            android:targetPackage="com.butcemiz.app" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_income"
+        android:shortcutId="add_income"
+        android:shortcutLongLabel="@string/sc_income_long"
+        android:shortcutShortLabel="@string/sc_income_short">
+        <intent
+            android:action="com.butcemiz.app.ADD_INCOME"
+            android:targetClass="com.butcemiz.app.MainActivity"
+            android:targetPackage="com.butcemiz.app" />
+    </shortcut>
+</shortcuts>

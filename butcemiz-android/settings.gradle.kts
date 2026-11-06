@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        google()
+        // Maven Central'ın Google tarafından barındırılan resmi aynası (hız sınırına takılmamak için önce denenir)
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        maven("https://maven-central.storage-download.googleapis.com/maven2/")
+        mavenCentral()
+    }
+}
+
+rootProject.name = "Butcemiz"
+include(":app")

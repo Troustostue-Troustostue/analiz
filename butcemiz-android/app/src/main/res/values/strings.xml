@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Bütçemiz</string>
+    <string name="widget_desc">Toplam bakiye, bu ayın gelir-gideri ve hızlı ekleme</string>
+    <string name="sc_expense_short">Harcama ekle</string>
+    <string name="sc_expense_long">Yeni harcama ekle</string>
+    <string name="sc_income_short">Gelir ekle</string>
+    <string name="sc_income_long">Yeni gelir ekle</string>
+</resources>
