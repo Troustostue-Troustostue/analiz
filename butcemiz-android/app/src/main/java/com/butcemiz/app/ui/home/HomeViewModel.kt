@@ -122,7 +122,7 @@ class HomeViewModel(private val c: AppContainer) : ViewModel() {
         fun expenseIn(pr: Period) = w.txns.filter { it.type == TxType.EXPENSE && pr.contains(it.occurredAt) }.sumOf { it.amount }
         val todayP = Period(com.butcemiz.app.core.PeriodKind.WEEK, today, today.plusDays(1))
         val paydays = p.incomes.filter { it.active }
-            .map { Calc.paydayStatus(it, p.payments, today) }
+            .map { Calc.paydayStatus(it, p.payments + w.txns, today) }
             .filter { it.received == null && !it.due.isAfter(today) && ChronoUnit.DAYS.between(it.due, today) <= 5 }
         return HomeState(
             loading = false,

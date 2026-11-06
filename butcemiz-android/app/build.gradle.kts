@@ -78,6 +78,14 @@ android {
         unitTests {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
+            all {
+                it.systemProperty("robolectric.dependency.repo.url", "https://maven-central.storage-download.googleapis.com/maven2")
+                it.systemProperty("robolectric.dependency.repo.id", "central-mirror")
+                it.systemProperty("butcemiz.live", (project.findProperty("live") ?: "false").toString())
+                it.systemProperty("butcemiz.shots", rootProject.file("screenshots").absolutePath)
+                it.maxHeapSize = "3g"
+                it.testLogging { events("passed", "failed", "skipped"); showStandardStreams = true; exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL }
+            }
         }
     }
 
@@ -141,6 +149,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.androidx.room.testing)

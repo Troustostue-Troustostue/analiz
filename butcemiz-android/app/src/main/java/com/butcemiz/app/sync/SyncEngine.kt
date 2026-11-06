@@ -60,10 +60,12 @@ interface SyncListener {
 class SyncEngine(
     private val prefs: AppPrefs,
     private val log: OpLog,
-    private val transport: NtfyTransport,
+    private val transport: RelayTransport,
     private val listener: SyncListener,
     private val scope: CoroutineScope,
     private val deviceName: () -> String,
+    private val releaseDelayMs: Long = 20_000,
+    private val requestCooldownMs: Long = 45_000,
 ) {
     enum class State { NOT_CONFIGURED, WAITING_PARTNER, IDLE, CONNECTING, CONNECTED, OFFLINE, QUOTA }
 
@@ -84,7 +86,16 @@ class SyncEngine(
     private val wake = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private val flushSignal = Channel<Unit>(Channel.CONFLATED)
     private val requestSignal = Channel<Boolean>(Channel.CONFLATED)
-    private val lastResponseAt = HashMap<String, Long>()
+
+    /** Aynı isteğe (aynı durum vektörü) kısa sürede ikinci kez yanıt verilmez. */
+    private val lastResponse = HashMap<String, Pair<Long, Map<String, Long>>>()
+
+    /** Bir "eksiklerimi gönder" isteği gerekiyor mu (gönderilene ya da eşitlenene kadar) */
+    @Volatile
+    private var requestPending = false
+
+    @Volatile
+    private var retryScheduled = false
 
     @Volatile
     var isConnected: Boolean = false
@@ -121,7 +132,7 @@ class SyncEngine(
         if (holders.isEmpty()) {
             stopJob?.cancel()
             stopJob = scope.launch {
-                delay(20_000)
+                delay(releaseDelayMs)
                 synchronized(this@SyncEngine) {
                     if (holders.isEmpty()) {
                         streamJob?.cancel()
@@ -155,8 +166,14 @@ class SyncEngine(
 
     /** Kullanıcı isteğiyle tam eşitleme isteği gönder. */
     fun requestNow(force: Boolean = true) {
+        requestPending = true
         requestSignal.trySend(force)
         poke()
+    }
+
+    private fun wantRequest() {
+        requestPending = true
+        requestSignal.trySend(false)
     }
 
     // ===================== canlı akış =====================
@@ -217,8 +234,8 @@ class SyncEngine(
         val missedCache = aliveBefore == 0L || gap > 11 * HOUR
         val daily = now - prefs.lastSyncRequestAt > 24 * HOUR
         when {
-            !prefs.paired && prefs.awaitingInitialSync -> requestSignal.trySend(false)
-            prefs.paired && (missedCache || daily) -> requestSignal.trySend(false)
+            !prefs.paired && prefs.awaitingInitialSync -> wantRequest()
+            prefs.paired && (missedCache || daily) -> wantRequest()
         }
     }
 
@@ -247,7 +264,7 @@ class SyncEngine(
         if (ev.id.isNotEmpty()) prefs.markMessageSeen(ev.id)
         if (raw == null) {
             // ekin süresi dolmuş: eksikleri yeniden iste
-            requestSignal.trySend(false)
+            wantRequest()
             return
         }
         val plain = Crypto.open(key, raw) ?: return
@@ -280,19 +297,21 @@ class SyncEngine(
         }
         val mine = log.stateVector()
         val lacking = env.sv.any { (d, s) -> d != self && s > (mine[d] ?: 0L) }
-        if (lacking) requestSignal.trySend(false)
-        if (env.k == "req" && env.sv.isEmpty() && mine.isEmpty()) {
-            // iki taraf da boş: yapacak bir şey yok
+        if (lacking) {
+            wantRequest()
+        } else if (env.k == "ops") {
+            // karşı tarafın bildiği her şeye sahibiz: bekleyen isteğe gerek kalmadı
+            requestPending = false
         }
     }
 
     private suspend fun respond(env: Envelope) {
         val now = System.currentTimeMillis()
-        val last = lastResponseAt[env.f] ?: 0L
-        if (now - last < 30_000) return
+        val last = lastResponse[env.f]
+        if (last != null && last.second == env.sv && now - last.first < 60_000) return
         val missing = log.missingFor(env.sv)
         if (missing.isEmpty()) return
-        lastResponseAt[env.f] = now
+        lastResponse[env.f] = now to env.sv
         if (publishOps(missing)) {
             val self = prefs.deviceId
             val ownMax = missing.filter { it.d == self }.maxOfOrNull { it.s }
@@ -326,11 +345,27 @@ class SyncEngine(
     }
 
     private suspend fun sendRequest(force: Boolean) {
-        val now = System.currentTimeMillis()
-        if (!force && now - prefs.lastSyncRequestAt < 45_000) return
         if (prefs.syncConfig == null) return
+        if (!force && !requestPending) return
+        val now = System.currentTimeMillis()
+        val wait = requestCooldownMs - (now - prefs.lastSyncRequestAt)
+        if (!force && wait > 0) {
+            // çok sık istek gönderme; bekleme bitince hâlâ gerekiyorsa gönder
+            if (!retryScheduled) {
+                retryScheduled = true
+                scope.launch {
+                    delay(wait + 250)
+                    retryScheduled = false
+                    if (requestPending) requestSignal.trySend(false)
+                }
+            }
+            return
+        }
         val ok = publishEnvelope(Envelope(k = "req", f = prefs.deviceId, sv = log.stateVector(), t = now, n = deviceName()))
-        if (ok) prefs.lastSyncRequestAt = now
+        if (ok) {
+            prefs.lastSyncRequestAt = now
+            requestPending = false
+        }
     }
 
     private suspend fun publishEnvelope(env: Envelope): Boolean {

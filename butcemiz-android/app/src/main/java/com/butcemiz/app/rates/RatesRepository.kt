@@ -28,8 +28,6 @@ class RatesRepository(
         .callTimeout(25, TimeUnit.SECONDS)
         .build()
 
-    private val json = Json { ignoreUnknownKeys = true; isLenient = true }
-
     suspend fun refreshIfStale(maxAgeMs: Long = 30 * 60_000L) {
         if (System.currentTimeMillis() - prefs.lastRatesFetch > maxAgeMs) refresh()
     }
@@ -65,42 +63,44 @@ class RatesRepository(
         }
     }
 
-    fun parseTruncgil(body: String, now: Long): List<PriceEntry> {
-        val root = json.parseToJsonElement(body).jsonObject
-        val out = mutableListOf<PriceEntry>()
-        for (key in TRUNCGIL_KEYS) {
-            val o = root[key] as? JsonObject ?: continue
-            val buying = num(o["Buying"] ?: o["Alış"])
-            val selling = num(o["Selling"] ?: o["Satış"])
-            val change = num(o["Change"] ?: o["Değişim"])
-            if (buying == null && selling == null) continue
-            out += PriceEntry(key, buying ?: selling!!, selling ?: buying!!, change, now, "Truncgil")
-        }
-        return out
-    }
-
-    fun parseTcmb(body: String, now: Long): List<PriceEntry> {
-        val out = mutableListOf<PriceEntry>()
-        val block = Regex("<Currency[^>]*Kod=\"([A-Z]{3})\"[^>]*>(.*?)</Currency>", RegexOption.DOT_MATCHES_ALL)
-        for (m in block.findAll(body)) {
-            val code = m.groupValues[1]
-            if (code !in FX_KEYS) continue
-            val inner = m.groupValues[2]
-            fun tag(t: String) = Regex("<$t>([^<]*)</$t>").find(inner)?.groupValues?.get(1)?.trim()?.toDoubleOrNull()
-            val unit = tag("Unit") ?: 1.0
-            val buying = tag("ForexBuying") ?: tag("BanknoteBuying") ?: continue
-            val selling = tag("ForexSelling") ?: tag("BanknoteSelling") ?: buying
-            out += PriceEntry(code, buying / unit, selling / unit, null, now, "TCMB")
-        }
-        return out
-    }
-
-    private fun num(e: kotlinx.serialization.json.JsonElement?): Double? {
-        val p = e as? JsonPrimitive ?: return null
-        return parseTrDecimal(p.content)
-    }
-
     companion object {
+        private val json = Json { ignoreUnknownKeys = true; isLenient = true }
+
+        fun parseTruncgil(body: String, now: Long): List<PriceEntry> {
+            val root = json.parseToJsonElement(body).jsonObject
+            val out = mutableListOf<PriceEntry>()
+            for (key in TRUNCGIL_KEYS) {
+                val o = root[key] as? JsonObject ?: continue
+                val buying = num(o["Buying"] ?: o["Alış"])
+                val selling = num(o["Selling"] ?: o["Satış"])
+                val change = num(o["Change"] ?: o["Değişim"])
+                if (buying == null && selling == null) continue
+                out += PriceEntry(key, buying ?: selling!!, selling ?: buying!!, change, now, "Truncgil")
+            }
+            return out
+        }
+
+        fun parseTcmb(body: String, now: Long): List<PriceEntry> {
+            val out = mutableListOf<PriceEntry>()
+            val block = Regex("<Currency[^>]*Kod=\"([A-Z]{3})\"[^>]*>(.*?)</Currency>", RegexOption.DOT_MATCHES_ALL)
+            for (m in block.findAll(body)) {
+                val code = m.groupValues[1]
+                if (code !in FX_KEYS) continue
+                val inner = m.groupValues[2]
+                fun tag(t: String) = Regex("<$t>([^<]*)</$t>").find(inner)?.groupValues?.get(1)?.trim()?.toDoubleOrNull()
+                val unit = tag("Unit") ?: 1.0
+                val buying = tag("ForexBuying") ?: tag("BanknoteBuying") ?: continue
+                val selling = tag("ForexSelling") ?: tag("BanknoteSelling") ?: buying
+                out += PriceEntry(code, buying / unit, selling / unit, null, now, "TCMB")
+            }
+            return out
+        }
+
+        private fun num(e: kotlinx.serialization.json.JsonElement?): Double? {
+            val p = e as? JsonPrimitive ?: return null
+            return parseTrDecimal(p.content)
+        }
+
         const val TRUNCGIL_V3 = "https://finans.truncgil.com/v3/today.json"
         const val TCMB = "https://www.tcmb.gov.tr/kurlar/today.xml"
         val FX_KEYS = listOf("USD", "EUR", "GBP", "CHF")

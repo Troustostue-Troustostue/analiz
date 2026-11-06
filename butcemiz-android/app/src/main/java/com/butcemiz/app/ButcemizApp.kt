@@ -10,7 +10,7 @@ import com.butcemiz.app.sync.BackgroundWork
 import com.butcemiz.app.sync.SyncService
 import kotlinx.coroutines.launch
 
-class ButcemizApp : Application() {
+open class ButcemizApp : Application() {
 
     lateinit var container: AppContainer
         private set

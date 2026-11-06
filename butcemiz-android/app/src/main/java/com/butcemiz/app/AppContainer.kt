@@ -17,6 +17,7 @@ import com.butcemiz.app.notify.Reminders
 import com.butcemiz.app.prefs.AppPrefs
 import com.butcemiz.app.rates.RatesRepository
 import com.butcemiz.app.sync.NtfyTransport
+import com.butcemiz.app.sync.RelayTransport
 import com.butcemiz.app.sync.SyncEngine
 import com.butcemiz.app.sync.SyncListener
 import com.butcemiz.app.widget.BalanceWidget
@@ -84,7 +85,7 @@ class AppContainer(private val app: Application) {
         }
     }
 
-    val transport = NtfyTransport(http)
+    val transport: RelayTransport = transportOverride ?: NtfyTransport(http)
     val engine = SyncEngine(prefs, log, transport, listener, appScope, deviceName = { deviceName() })
     val rates = RatesRepository(db, prefs, http)
     val reminders = Reminders(repo, prefs, notifier)
@@ -109,6 +110,12 @@ class AppContainer(private val app: Application) {
 
     fun isForeground(): Boolean =
         ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+
+    companion object {
+        /** Yalnızca testler için: gerçek ntfy yerine sahte aktarıcı */
+        @Volatile
+        var transportOverride: RelayTransport? = null
+    }
 
     fun deviceName(): String =
         runCatching { Settings.Global.getString(app.contentResolver, Settings.Global.DEVICE_NAME) }.getOrNull()

@@ -40,11 +40,19 @@ sealed interface PublishResult {
 
 class HttpStatusException(val code: Int, message: String) : IOException(message)
 
+/** Aktarıcı soyutlaması (gerçek: ntfy; testlerde bellek içi sahte aktarıcı). */
+interface RelayTransport {
+    suspend fun publish(cfg: SyncConfig, body: String): PublishResult
+    suspend fun poll(cfg: SyncConfig, since: String): List<NtfyEvent>
+    fun stream(cfg: SyncConfig, since: String): Flow<NtfyEvent>
+    suspend fun download(cfg: SyncConfig, url: String): String?
+}
+
 /**
  * ntfy (https://ntfy.sh) üzerinden yayınla/abone ol. ntfy yalnızca bir aktarıcıdır:
  * mesajları 12 saat önbellekte tutar, 4 KB üstü gövdeleri otomatik olarak ek dosyaya çevirir.
  */
-class NtfyTransport(baseClient: OkHttpClient = OkHttpClient()) {
+class NtfyTransport(baseClient: OkHttpClient = OkHttpClient()) : RelayTransport {
 
     private val json = Json { ignoreUnknownKeys = true; coerceInputValues = true; isLenient = true }
 
@@ -68,7 +76,7 @@ class NtfyTransport(baseClient: OkHttpClient = OkHttpClient()) {
     private fun Request.Builder.auth(cfg: SyncConfig): Request.Builder =
         if (!cfg.token.isNullOrBlank()) header("Authorization", "Bearer ${cfg.token}") else this
 
-    suspend fun publish(cfg: SyncConfig, body: String): PublishResult = withContext(Dispatchers.IO) {
+    override suspend fun publish(cfg: SyncConfig, body: String): PublishResult = withContext(Dispatchers.IO) {
         val req = Request.Builder()
             .url(base(cfg))
             // Not: "Filename" başlığı GÖNDERİLMEZ; aksi halde küçük mesajlar da 3 saatlik eke dönüşür.
@@ -91,7 +99,7 @@ class NtfyTransport(baseClient: OkHttpClient = OkHttpClient()) {
     }
 
     /** Önbellekteki mesajları tek seferde çeker (arka plan işçisi için). */
-    suspend fun poll(cfg: SyncConfig, since: String): List<NtfyEvent> = withContext(Dispatchers.IO) {
+    override suspend fun poll(cfg: SyncConfig, since: String): List<NtfyEvent> = withContext(Dispatchers.IO) {
         val url = (base(cfg) + "/json").toHttpUrlOrNull()!!.newBuilder()
             .addQueryParameter("poll", "1")
             .addQueryParameter("since", since)
@@ -105,7 +113,7 @@ class NtfyTransport(baseClient: OkHttpClient = OkHttpClient()) {
     }
 
     /** Canlı akış. Toplayıcı iptal edildiğinde bağlantı kapanır. */
-    fun stream(cfg: SyncConfig, since: String): Flow<NtfyEvent> = callbackFlow {
+    override fun stream(cfg: SyncConfig, since: String): Flow<NtfyEvent> = callbackFlow {
         val url = (base(cfg) + "/json").toHttpUrlOrNull()!!.newBuilder()
             .addQueryParameter("since", since)
             .build()
@@ -139,7 +147,7 @@ class NtfyTransport(baseClient: OkHttpClient = OkHttpClient()) {
         awaitClose { call.cancel() }
     }
 
-    suspend fun download(cfg: SyncConfig, url: String): String? = withContext(Dispatchers.IO) {
+    override suspend fun download(cfg: SyncConfig, url: String): String? = withContext(Dispatchers.IO) {
         try {
             val req = Request.Builder().url(url).get().auth(cfg).build()
             client.newCall(req).execute().use { r -> if (r.isSuccessful) r.body?.string() else null }

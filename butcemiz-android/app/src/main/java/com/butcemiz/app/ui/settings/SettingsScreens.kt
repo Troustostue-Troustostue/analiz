@@ -665,8 +665,8 @@ fun CategoriesScreen(nav: NavController) {
     ) { pad ->
         Column(Modifier.fillMaxSize().padding(pad)) {
             PrimaryTabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.background) {
-                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Gider") })
-                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Gelir") })
+                Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Gider") }, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
+                Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Gelir") }, unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             LazyColumn(
                 contentPadding = PaddingValues(16.dp),

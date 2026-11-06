@@ -101,7 +101,7 @@ class ReminderWorker(ctx: Context, params: WorkerParameters) : CoroutineWorker(c
 }
 
 object BackgroundWork {
-    fun schedule(context: Context) {
+    fun schedule(context: Context) = runCatching {
         val wm = WorkManager.getInstance(context)
         wm.enqueueUniquePeriodicWork(
             "sync",

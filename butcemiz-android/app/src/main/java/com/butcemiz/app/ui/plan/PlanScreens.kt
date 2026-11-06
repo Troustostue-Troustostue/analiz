@@ -241,7 +241,7 @@ fun PaymentsScreen(nav: NavController) {
                                 Text(scheduleText(r), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Column(horizontalAlignment = Alignment.End) {
-                                Text((if (r.variable) "≈ " else "") + money(r.amount, Money.Decimals.NEVER), style = AmountStyle.copy(fontSize = 16.sp))
+                                Text((if (r.variable) "≈ " else "") + money(r.amount), style = AmountStyle.copy(fontSize = 16.sp))
                                 if (!r.active) Pill("Pasif", MaterialTheme.colorScheme.outline)
                             }
                         }
@@ -252,7 +252,7 @@ fun PaymentsScreen(nav: NavController) {
                                     if (next != null) {
                                         val d = Dates.daysUntil(next.due, today)
                                         Text(
-                                            "Sıradaki: ${Dates.dayMonth(next.due)} · ${Dates.dueText(next.due, today)}",
+                                            "Sıradaki: ${Dates.dayMonth(next.due)}" + if (d < 7) " · ${Dates.dueText(next.due, today)}" else "",
                                             style = MaterialTheme.typography.labelMedium,
                                             color = if (d < 0) sem.expense else if (d <= 2) sem.warning else MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
@@ -508,7 +508,7 @@ fun IncomesScreen(nav: NavController) {
             } else {
                 item { SectionHeader("Düzenli gelirler") }
                 items(s.incomes, key = { it.id }) { src ->
-                    val st = Calc.paydayStatus(src, s.payments, today)
+                    val st = Calc.paydayStatus(src, s.payments + s.monthTxns, today)
                     val member = s.memberMap[src.memberId]
                     AppCard(onClick = { editing = src }, padding = PaddingValues(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {

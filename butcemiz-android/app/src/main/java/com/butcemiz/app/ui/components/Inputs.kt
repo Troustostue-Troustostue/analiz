@@ -6,6 +6,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -135,11 +137,12 @@ fun BigAmountField(
     focusRequester: FocusRequester? = null,
     onNext: () -> Unit = {},
 ) {
-    val style = AmountStyle.copy(fontSize = 46.sp, color = color, textAlign = TextAlign.Center)
+    val style = AmountStyle.copy(fontSize = 46.sp, color = color)
     BasicTextField(
         value = value,
         onValueChange = { onValueChange(sanitizeAmountInput(it)) },
         modifier = modifier.fillMaxWidth().let { if (focusRequester != null) it.focusRequester(focusRequester) else it },
+        // iç alan metin genişliğinde kalır; satır ortalanır
         textStyle = style,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
@@ -148,7 +151,7 @@ fun BigAmountField(
         cursorBrush = SolidColor(color),
         decorationBox = { inner ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(Modifier.width(IntrinsicSize.Max), contentAlignment = Alignment.CenterStart) {
                     if (value.isEmpty()) Text("0", style = style.copy(color = color.copy(alpha = 0.35f)))
                     inner()
                 }

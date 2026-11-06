@@ -434,7 +434,7 @@ private fun CategoryGrid(cats: List<Category>, selected: String?, onSelect: (Str
     val rows = if (cats.size > 8) 2 else 1
     LazyHorizontalGrid(
         rows = GridCells.Fixed(rows),
-        modifier = Modifier.fillMaxWidth().height(if (rows == 2) 196.dp else 98.dp),
+        modifier = Modifier.fillMaxWidth().height(if (rows == 2) 200.dp else 100.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(vertical = 2.dp),
@@ -443,14 +443,14 @@ private fun CategoryGrid(cats: List<Category>, selected: String?, onSelect: (Str
             val isSel = cat.id == selected
             Column(
                 Modifier
-                    .width(78.dp)
+                    .width(86.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .background(if (isSel) colorOf(cat.color).copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceContainerLowest)
                     .clickable { onSelect(cat.id) }
                     .padding(vertical = 8.dp, horizontal = 4.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                IconBadge(AppIcons.of(cat.icon), colorOf(cat.color), size = 44.dp, iconSize = 22.dp, filled = isSel)
+                IconBadge(AppIcons.of(cat.icon), colorOf(cat.color), size = 42.dp, iconSize = 22.dp, filled = isSel)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     cat.name,

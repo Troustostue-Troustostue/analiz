@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.BatteryAlert
 import androidx.compose.material.icons.rounded.CallReceived
 import androidx.compose.material.icons.rounded.Celebration
 import androidx.compose.material.icons.rounded.EventRepeat
@@ -50,6 +51,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -82,6 +85,8 @@ import com.butcemiz.app.ui.components.colorOf
 import com.butcemiz.app.ui.components.money
 import com.butcemiz.app.ui.components.rememberSnackbar
 import com.butcemiz.app.ui.nav.Routes
+import com.butcemiz.app.ui.settings.isIgnoringBattery
+import com.butcemiz.app.ui.settings.requestIgnoreBattery
 import com.butcemiz.app.ui.nav.appViewModel
 import com.butcemiz.app.ui.nav.openAdd
 import com.butcemiz.app.ui.nav.openTab
@@ -101,6 +106,8 @@ fun HomeScreen(nav: NavController) {
     val snackbar = rememberSnackbar()
     val scope = rememberCoroutineScope()
     val highlighted = remember { mutableStateMapOf<String, Boolean>() }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var showBatteryTip by remember { mutableStateOf(!c.prefs.batteryPromptShown && !isIgnoringBattery(context)) }
 
     // Eşten gelen hareketleri ekranda göster
     LaunchedEffect(Unit) {
@@ -180,6 +187,20 @@ fun HomeScreen(nav: NavController) {
             }
             if (!paired) {
                 item { InviteCard(onClick = { nav.navigate(Routes.SYNC) }) }
+            } else if (showBatteryTip) {
+                item {
+                    BatteryCard(
+                        onFix = {
+                            requestIgnoreBattery(context)
+                            c.prefs.batteryPromptShown = true
+                            showBatteryTip = false
+                        },
+                        onDismiss = {
+                            c.prefs.batteryPromptShown = true
+                            showBatteryTip = false
+                        },
+                    )
+                }
             }
             items(s.paydays, key = { "pay_" + it.source.id }) { st ->
                 PaydayCard(st, s.members[st.source.memberId]?.name, onRecord = {
@@ -414,6 +435,29 @@ private fun InviteCard(onClick: () -> Unit) {
 }
 
 @Composable
+private fun BatteryCard(onFix: () -> Unit, onDismiss: () -> Unit) {
+    val sem = LocalSemantic.current
+    AppCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(Icons.Rounded.BatteryAlert, sem.warning)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Bildirimler gecikmesin", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    "Samsung pil tasarrufu arka plan bağlantısını kesebilir. Bütçemiz için pil optimizasyonunu kapatın.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = onDismiss) { Text("Sonra") }
+            FilledTonalButton(onClick = onFix) { Text("Ayarla") }
+        }
+    }
+}
+
+@Composable
 private fun PaydayCard(st: PaydayStatus, memberName: String?, onRecord: () -> Unit) {
     val sem = LocalSemantic.current
     AppCard {
@@ -488,7 +532,7 @@ private fun SummaryTile(label: String, value: Long, previous: Long?, modifier: M
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             } else {
                 val pct = ((value - previous) * 100 / previous).toInt()
-                text = (if (pct > 0) "▲ %$pct" else if (pct < 0) "▼ %${-pct}" else "aynı") + " önceki"
+                text = if (pct > 0) "▲ %$pct fazla" else if (pct < 0) "▼ %${-pct} az" else "değişmedi"
                 color = if (pct > 0) sem.expense else sem.income
             }
             Text(text, style = MaterialTheme.typography.labelSmall, color = color, maxLines = 1)

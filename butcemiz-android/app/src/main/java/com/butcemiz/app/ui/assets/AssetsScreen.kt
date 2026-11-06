@@ -200,7 +200,13 @@ fun AssetsScreen(nav: NavController) {
             item {
                 PrimaryTabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.background) {
                     listOf("Hesaplar", "Birikimler", "Borçlar").forEachIndexed { i, t ->
-                        Tab(selected = tab == i, onClick = { vm.tab.value = i }, text = { Text(t) })
+                        Tab(
+                            selected = tab == i,
+                            onClick = { vm.tab.value = i },
+                            text = { Text(t) },
+                            selectedContentColor = MaterialTheme.colorScheme.primary,
+                            unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }

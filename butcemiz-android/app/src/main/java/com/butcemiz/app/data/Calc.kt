@@ -355,12 +355,25 @@ object Calc {
 
     // ---------------- Maaş / gelir günleri ----------------
 
-    fun paydayStatus(src: IncomeSource, payments: List<Txn>, today: LocalDate = Dates.today()): PaydayStatus {
+    /**
+     * Bu ayki maaş yattı mı? Önce "Yattı" ile bağlanmış kayda, yoksa aynı kişiye ait,
+     * aynı kategoride, maaş gününe yakın ve beklenen tutarın en az yarısı kadar bir
+     * gelire bakar (maaşı "Gelir ekle" ile elle girenler için).
+     */
+    fun paydayStatus(src: IncomeSource, txns: List<Txn>, today: LocalDate = Dates.today()): PaydayStatus {
         val ym = YearMonth.from(today)
         val due = Dates.clampDay(ym, src.payDay)
         val key = monthKey(due)
-        val received = payments.firstOrNull { it.incomeSourceId == src.id && it.period == key }
-        return PaydayStatus(src, due, key, received)
+        val linked = txns.firstOrNull { it.incomeSourceId == src.id && it.period == key && !it.deleted }
+        val cat = src.categoryId ?: Seeds.incomeCategoryFor(src.kind)
+        val from = Dates.startOfDay(due.minusDays(10))
+        val to = Dates.startOfDay(due.plusDays(25))
+        val manual = linked ?: txns.firstOrNull {
+            it.type == TxType.INCOME && !it.deleted && it.incomeSourceId == null &&
+                it.categoryId == cat && (src.memberId == null || it.memberId == src.memberId) &&
+                it.occurredAt in from until to && it.amount * 2 >= src.amount
+        }
+        return PaydayStatus(src, due, key, manual)
     }
 
     /** Bir sonraki maaş günü (bu ayki alındıysa gelecek ay) */

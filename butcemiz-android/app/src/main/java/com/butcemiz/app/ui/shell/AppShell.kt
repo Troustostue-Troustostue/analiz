@@ -96,14 +96,19 @@ fun AppShell(pendingRoute: MutableState<String?>) {
         }
     }
 
-    LaunchedEffect(pendingRoute.value) {
+    // Bildirim/kısayol yönlendirmesi: gezinme grafiği kurulduktan sonra uygulanır
+    val navReady = entry != null
+    LaunchedEffect(pendingRoute.value, navReady) {
+        if (!navReady) return@LaunchedEffect
         val r = pendingRoute.value ?: return@LaunchedEffect
         pendingRoute.value = null
-        when (r) {
-            "add_expense" -> nav.openAdd(TxType.EXPENSE)
-            "add_income" -> nav.openAdd(TxType.INCOME)
-            Routes.HOME -> nav.openTab(Routes.HOME)
-            else -> runCatching { nav.navigate(r) }
+        runCatching {
+            when (r) {
+                "add_expense" -> nav.openAdd(TxType.EXPENSE)
+                "add_income" -> nav.openAdd(TxType.INCOME)
+                in Routes.tabs -> nav.openTab(r)
+                else -> nav.navigate(r)
+            }
         }
     }
 

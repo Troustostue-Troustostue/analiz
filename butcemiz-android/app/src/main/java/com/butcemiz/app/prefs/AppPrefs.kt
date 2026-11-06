@@ -19,8 +19,8 @@ data class SyncConfig(
 )
 
 /** Cihaza özel (senkronize edilmeyen) ayarlar. */
-class AppPrefs(context: Context) {
-    private val sp: SharedPreferences = context.getSharedPreferences("butcemiz_prefs", Context.MODE_PRIVATE)
+class AppPrefs(context: Context, fileName: String = "butcemiz_prefs") {
+    private val sp: SharedPreferences = context.getSharedPreferences(fileName, Context.MODE_PRIVATE)
 
     private fun <T> state(v: T) = MutableStateFlow(v)
 
